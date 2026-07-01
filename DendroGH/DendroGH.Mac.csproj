@@ -53,7 +53,6 @@
 
   <ItemGroup>
     <None Include="app.config" />
-    <None Include="packages.config" />
     <None Include="Resources\ico_bool_int.png" />
   </ItemGroup>
   <ItemGroup>

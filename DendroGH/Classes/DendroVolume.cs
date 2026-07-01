@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Reflection;
 using Rhino.Geometry;
 
 namespace DendroGH {
@@ -13,6 +14,31 @@ namespace DendroGH {
     /// specific functions on that c++ mGrid class
     /// </summary>
     public class DendroVolume : IDisposable {
+
+#if NET
+        static DendroVolume() {
+            NativeLibrary.SetDllImportResolver(typeof(DendroVolume).Assembly, ResolveNativeLibrary);
+        }
+
+        private static IntPtr ResolveNativeLibrary(string libraryName, Assembly assembly, DllImportSearchPath? searchPath) {
+#if UNIX
+            const string nativeLibraryName = "libDendroAPI.dylib";
+#else
+            const string nativeLibraryName = "DendroAPI.dll";
+#endif
+            if (!string.Equals(libraryName, nativeLibraryName, StringComparison.OrdinalIgnoreCase)) {
+                return IntPtr.Zero;
+            }
+
+            string assemblyDirectory = Path.GetDirectoryName(assembly.Location);
+            if (string.IsNullOrEmpty(assemblyDirectory)) {
+                return IntPtr.Zero;
+            }
+
+            string nativeLibraryPath = Path.Combine(assemblyDirectory, nativeLibraryName);
+            return File.Exists(nativeLibraryPath) ? NativeLibrary.Load(nativeLibraryPath) : IntPtr.Zero;
+        }
+#endif
 
 #region PInvokes
         #if UNIX

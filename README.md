@@ -14,6 +14,17 @@ Dendro contains two projects, a C++ project for working with OpenVDB and a C# pr
 ### DendroAPI (C++)
 OpenVDB and all its dependencies are added to the supplied VCPKG manifest. Upon build, it should automatically download and install everything required.
 
+##### DendroAPI (C++) on Windows
+
+Rhino 8 for Windows is 64-bit, so build the native library with the `Release|x64` solution configuration. The Visual Studio C++ project is configured for the current Visual Studio C++ toolset, C++17, and the `x64-windows-static` vcpkg triplet.
+
+Required tools:
+
+* Visual Studio or Build Tools for Visual Studio with the Desktop development with C++ workload
+* vcpkg with Visual Studio integration enabled
+
+The native output is expected at `x64\Release\DendroAPI.dll`.
+
 ##### DendroAPI (C++) on MacOS
 
 Use Homebrew (`brew`) to install the dependencies for the C++ library:
@@ -32,9 +43,16 @@ make
 ```
 
 ### DendroGH (C#)
-Since there are multiple versions of Rhino, each with their specific SDK, I added the Rhinocommon and Grasshopper-3D libraries as a nuget package in order to let you specifically target your desired Rhino version. That can be changed by `Right-clicking the C# project`, then selecting `Manage Nuget Packages`, clicking the `Installed` tab, `Selecting` your desired package, and finally, changing the `Version` in the right panel.
+Since there are multiple versions of Rhino, each with their specific SDK, the Rhinocommon and Grasshopper-3D libraries are referenced as NuGet packages. The Windows project is configured for Rhino 8.32 by default and multi-targets `net48` and `net7.0-windows`, matching Rhino 8's .NET Framework and .NET Core runtime options on Windows.
 
-It is targeted for Rhino 8 by default.
+To build only the Grasshopper plug-in on Windows:
+
+```
+dotnet restore DendroGH\DendroGH.csproj
+dotnet build DendroGH\DendroGH.csproj -c Release
+```
+
+The Grasshopper outputs are written to `x64\Release\net48\DendroGH.gha` and `x64\Release\net7.0-windows\DendroGH.gha`. Put the `.gha` and the matching `DendroAPI.dll` in the same Grasshopper library folder.
 
 ##### DendroGH (C#) on MacOS
 
@@ -43,7 +61,7 @@ It is targeted for Rhino 8 by default.
 
 ## Building
 
-Dendro was built using Microsoft Visual Studio 2022, but you should be able to re-target for other versions. It will also copy all necessary dependency dlls into the output folder to provide an easy reference for where dependency dlls can be found. Make sure to build for "Release" and "x64". You will need to bring "DendroGH.gha" and "DendroAPI.dll" into your Grasshopper library folder.
+Dendro was built using Microsoft Visual Studio. Make sure to build the solution as `Release|x64`. You will need to bring `DendroGH.gha` and `DendroAPI.dll` into your Grasshopper library folder.
 
 ## More Info
 
