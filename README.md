@@ -1,69 +1,209 @@
 # Dendro
-Dendro is a volumetric modeling plug-in for Grasshopper-3D built on top of the OpenVDB library. It provides multiple ways to wrap points, curves, and meshes as a volumetric data within Grasshopper-3D, allowing you to perform various operations on those volumes. Dendro includes components for boolean, smoothing, offsets, and morphing operations. You can find out more details of its features and download a working version [here](https://www.food4rhino.com/app/dendro)
 
-## Design
+## English
 
-I have been using the OpenVDB library for a couple years, but needed something to prototype quicker with. I had built a rough version of this for Grasshopper-3D, but decided to package it up nicer and put a release together. Hopefully it is something to build upon and the hope was it could serve as a starting point to add more features and functionality to.
+Dendro is a volumetric modeling plug-in for Grasshopper 3D built on top of [OpenVDB](http://www.openvdb.org/). It provides components for wrapping points, curves, and meshes as volumetric data inside Grasshopper, then applying operations such as booleans, smoothing, offsets, morphing, file I/O, and mesh conversion.
 
-The goal was to make Dendro integrate into Grasshopper-3D as seamlessly as possible. Whereas many voxel solutions require you to think of geometry as living with a bounding box, Dendro makes working with volumes no different than handling any other geometry in Grasshopper-3D. Dendro works with many native Grasshopper-3D components, avoiding the 'blocking' found in other plugins, and allowing you to move in and out of volume operations very quickly.
+More information and released builds are available on [Food4Rhino](https://www.food4rhino.com/app/dendro).
 
-## Installation
+### Design
 
-Dendro contains two projects, a C++ project for working with OpenVDB and a C# project creating the Grasshopper-3D plugin.
+Dendro was created to make OpenVDB workflows feel native inside Grasshopper. Instead of treating voxel volumes as isolated data trapped inside a bounding box workflow, Dendro lets users move between Rhino geometry, Grasshopper data, and volumetric operations with as little friction as possible.
 
-### DendroAPI (C++)
-OpenVDB and all its dependencies are added to the supplied VCPKG manifest. Upon build, it should automatically download and install everything required.
+The repository contains two main projects:
 
-##### DendroAPI (C++) on Windows
+* `DendroAPI`: a native C++ library that wraps OpenVDB operations.
+* `DendroGH`: a C# Grasshopper plug-in that exposes the components and calls into `DendroAPI.dll`.
 
-Rhino 8 for Windows is 64-bit, so build the native library with the `Release|x64` solution configuration. The Visual Studio C++ project is configured for the current Visual Studio C++ toolset, C++17, and the `x64-windows-static` vcpkg triplet.
+### Windows / Rhino 8 Build
 
-Required tools:
+The Windows build has been updated and verified for Rhino 8. The C# plug-in targets both Rhino 8 runtime options:
 
-* Visual Studio or Build Tools for Visual Studio with the Desktop development with C++ workload
-* vcpkg with Visual Studio integration enabled
+* `net7.0-windows` for Rhino 8's .NET Core runtime.
+* `net48` for Rhino 8's .NET Framework runtime option.
 
-The native output is expected at `x64\Release\DendroAPI.dll`.
+The Rhino SDK references are pulled from NuGet packages:
 
-##### DendroAPI (C++) on MacOS
+* `RhinoCommon` `8.32.26160.13001`
+* `Grasshopper` `8.32.26160.13001`
 
-Use Homebrew (`brew`) to install the dependencies for the C++ library:
+#### Required Tools
 
+* Rhino 8 for Windows.
+* Visual Studio or Build Tools for Visual Studio with the Desktop development with C++ workload.
+* vcpkg. The project has been verified with the vcpkg bundled under Visual Studio at `E:\Microsoft Visual Studio\18\Community\VC\vcpkg`.
+* .NET SDK.
+
+Visual Studio C++ tools usually do not appear in a normal PowerShell `PATH`. Build the native project from a Visual Studio Developer Command Prompt, or run `VsDevCmd.bat` first:
+
+```bat
+call "E:\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
 ```
+
+Adjust the path if Visual Studio is installed somewhere else.
+
+#### Build the Full Solution
+
+From the repository root:
+
+```bat
+msbuild Dendro.sln /m /p:Configuration=Release /p:Platform=x64 /v:minimal
+```
+
+The solution builds `DendroAPI` first, then `DendroGH`, so the generated `DendroAPI.dll` is copied into the Grasshopper output folders.
+
+#### Build Only the Grasshopper Plug-in
+
+If `DendroAPI.dll` has already been built, the C# plug-in can be rebuilt with:
+
+```bat
+dotnet restore DendroGH\DendroGH.csproj
+dotnet build DendroGH\DendroGH.csproj -c Release
+```
+
+#### Windows Output Files
+
+The verified release outputs are:
+
+* `x64\Release\DendroAPI.dll`
+* `x64\Release\net7.0-windows\DendroGH.gha`
+* `x64\Release\net7.0-windows\DendroAPI.dll`
+* `x64\Release\net48\DendroGH.gha`
+* `x64\Release\net48\DendroAPI.dll`
+
+Copy the `.gha` and the matching `DendroAPI.dll` from the same output folder into your Grasshopper Libraries folder.
+
+#### Notes
+
+* The first vcpkg/OpenVDB build can take a long time because OpenVDB pulls and builds a large native dependency graph, including Boost, TBB, OpenEXR, Imath, Blosc, zlib, zstd, lz4, and related packages.
+* The C++ build may emit numeric conversion warnings from the existing native code. These warnings do not currently block the verified release build.
+* Rhino 8 compatibility scanning has been verified with Rhino's `compat.exe` for the generated Grasshopper assembly.
+
+### macOS Build
+
+The repository still contains the existing macOS-oriented project files and CMake workflow.
+
+Install native dependencies with Homebrew:
+
+```bash
 brew install boost cmake c-blosc openvdb tbb zlib
 ```
 
-Run the following from the DendroAPI directory to compile using `cmake`:
+Build `DendroAPI` from the `DendroAPI` directory:
 
-```
+```bash
 mkdir build
 cd build
 cmake ..
 make
 ```
 
-### DendroGH (C#)
-Since there are multiple versions of Rhino, each with their specific SDK, the Rhinocommon and Grasshopper-3D libraries are referenced as NuGet packages. The Windows project is configured for Rhino 8.32 by default and multi-targets `net48` and `net7.0-windows`, matching Rhino 8's .NET Framework and .NET Core runtime options on Windows.
+Build the C# project:
 
-To build only the Grasshopper plug-in on Windows:
-
+```bash
+dotnet build DendroGH.Mac.csproj
 ```
+
+## 中文
+
+Dendro 是一个基于 [OpenVDB](http://www.openvdb.org/) 的 Grasshopper 3D 体积建模插件。它可以在 Grasshopper 中将点、曲线和网格转换为体积数据，并提供布尔运算、平滑、偏移、形变、文件读写和网格转换等组件。
+
+更多信息和发布版本可以在 [Food4Rhino](https://www.food4rhino.com/app/dendro) 查看。
+
+### 设计目标
+
+Dendro 的目标是让 OpenVDB 工作流在 Grasshopper 中尽量接近原生体验。很多体素/体积工具会让用户围绕包围盒和孤立数据结构来思考，而 Dendro 希望用户可以自然地在 Rhino 几何、Grasshopper 数据和体积操作之间来回切换。
+
+本仓库包含两个主要项目：
+
+* `DendroAPI`：封装 OpenVDB 操作的原生 C++ 库。
+* `DendroGH`：Grasshopper C# 插件，负责提供组件并调用 `DendroAPI.dll`。
+
+### Windows / Rhino 8 构建
+
+Windows 构建已更新并验证可用于 Rhino 8。C# 插件同时面向 Rhino 8 的两种运行时选项：
+
+* `net7.0-windows`：用于 Rhino 8 的 .NET Core 运行时。
+* `net48`：用于 Rhino 8 的 .NET Framework 运行时选项。
+
+Rhino SDK 通过 NuGet 引用：
+
+* `RhinoCommon` `8.32.26160.13001`
+* `Grasshopper` `8.32.26160.13001`
+
+#### 所需工具
+
+* Rhino 8 for Windows。
+* Visual Studio 或 Visual Studio Build Tools，并安装 Desktop development with C++ workload。
+* vcpkg。本项目已使用 Visual Studio 自带的 vcpkg 验证，路径为 `E:\Microsoft Visual Studio\18\Community\VC\vcpkg`。
+* .NET SDK。
+
+Visual Studio C++ 工具通常不会出现在普通 PowerShell 的 `PATH` 中。构建原生项目时，请使用 Visual Studio Developer Command Prompt，或者先运行 `VsDevCmd.bat`：
+
+```bat
+call "E:\Microsoft Visual Studio\18\Community\Common7\Tools\VsDevCmd.bat" -arch=x64 -host_arch=x64
+```
+
+如果 Visual Studio 安装在其他位置，请相应调整路径。
+
+#### 构建完整解决方案
+
+在仓库根目录执行：
+
+```bat
+msbuild Dendro.sln /m /p:Configuration=Release /p:Platform=x64 /v:minimal
+```
+
+解决方案会先构建 `DendroAPI`，再构建 `DendroGH`，因此生成的 `DendroAPI.dll` 会被复制到 Grasshopper 输出目录。
+
+#### 只构建 Grasshopper 插件
+
+如果 `DendroAPI.dll` 已经构建完成，可以只重新构建 C# 插件：
+
+```bat
 dotnet restore DendroGH\DendroGH.csproj
 dotnet build DendroGH\DendroGH.csproj -c Release
 ```
 
-The Grasshopper outputs are written to `x64\Release\net48\DendroGH.gha` and `x64\Release\net7.0-windows\DendroGH.gha`. Put the `.gha` and the matching `DendroAPI.dll` in the same Grasshopper library folder.
+#### Windows 输出文件
 
-##### DendroGH (C#) on MacOS
+已验证的发布产物包括：
 
-* Install .Net Core (currently v8, v6+ is required for Apple Silicon) via brew: `brew install dotnet`
-* Compile with `dotnet build DendroGH.Mac.csproj`
+* `x64\Release\DendroAPI.dll`
+* `x64\Release\net7.0-windows\DendroGH.gha`
+* `x64\Release\net7.0-windows\DendroAPI.dll`
+* `x64\Release\net48\DendroGH.gha`
+* `x64\Release\net48\DendroAPI.dll`
 
-## Building
+请将同一个输出目录中的 `.gha` 和对应的 `DendroAPI.dll` 一起复制到 Grasshopper Libraries 文件夹。
 
-Dendro was built using Microsoft Visual Studio. Make sure to build the solution as `Release|x64`. You will need to bring `DendroGH.gha` and `DendroAPI.dll` into your Grasshopper library folder.
+#### 注意事项
 
-## More Info
+* 首次 vcpkg/OpenVDB 构建可能耗时较长，因为 OpenVDB 会拉取并编译较大的原生依赖图，包括 Boost、TBB、OpenEXR、Imath、Blosc、zlib、zstd、lz4 等。
+* C++ 构建目前可能会输出已有原生代码中的数值转换警告，这些警告不会阻塞已验证的 Release 构建。
+* 已使用 Rhino 8 的 `compat.exe` 对生成的 Grasshopper 程序集进行兼容性扫描，扫描通过。
 
-Dendro is using OpenVDB. For more information on the library, please visit [here](http://www.openvdb.org/).
+### macOS 构建
 
+仓库中仍保留了现有的 macOS 项目文件和 CMake 构建流程。
+
+使用 Homebrew 安装原生依赖：
+
+```bash
+brew install boost cmake c-blosc openvdb tbb zlib
+```
+
+在 `DendroAPI` 目录中构建 `DendroAPI`：
+
+```bash
+mkdir build
+cd build
+cmake ..
+make
+```
+
+构建 C# 项目：
+
+```bash
+dotnet build DendroGH.Mac.csproj
+```
